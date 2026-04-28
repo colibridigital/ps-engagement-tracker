@@ -54,8 +54,7 @@ export default function ProjectsListPage() {
           last_updated: item.current_status?.updated_at,
         }));
       }
-      // If data is already flat, return as is.
-      // The real backend provides 'id', but the component uses 'project_id' for links.
+
       return rawData.map((p: any) => ({ ...p, project_id: p.id }));
     },
   });
@@ -107,7 +106,7 @@ export default function ProjectsListPage() {
     let projects = allProjects;
 
     if (!includeInternal) {
-      projects = projects.filter((p) => p.client_name !== "Colibri Digital");
+      projects = projects.filter((p) => p.client_name !== "Colibri");
     }
 
     if (searchTerm) {
@@ -185,7 +184,7 @@ export default function ProjectsListPage() {
       <div className="mb-8 flex flex-col gap-3 md:flex-row md:items-end md:justify-between">
         <div>
           <h1 className="text-xl font-bold text-gray-900">Projects</h1>
-          <p className="text-gray-600">Browse and search active projects.</p>
+          <p className="text-gray-600">Browse and search active projects</p>
         </div>
       </div>
 
@@ -308,7 +307,7 @@ export default function ProjectsListPage() {
                       onChange={(e) => setIncludeInternal(e.target.checked)}
                       className="rounded border-gray-300 text-blue-600 focus:ring-blue-500"
                     />
-                    <span>Include internal projects</span>
+                    <span>Show internal projects (client = "Colibri")</span>
                   </label>
                 </div>
                 <div className="lg:col-start-4 flex items-center justify-end h-1">
