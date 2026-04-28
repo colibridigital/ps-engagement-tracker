@@ -1,14 +1,15 @@
+/** @type {import('tailwindcss').Config} */
 export default {
   content: ["./index.html", "./src/**/*.{js,ts,jsx,tsx}"],
   theme: {
     extend: {
       colors: {
-        "health-red": "#dc2626",
-        "health-amber": "#f59e0b",
-        "health-green": "#10b981",
-        "health-blue": "#0000A3",
+        "health-red": "#dc2626", // Used for RAG status
+        "health-amber": "#f59e0b", // Used for RAG status
+        "health-green": "#10b981", // Used for RAG status
+        "health-blue": "#0000A3", // Used for RAG status
       },
     },
   },
-  plugins: [],
+  plugins: [require("@tailwindcss/typography")],
 };

@@ -1,18 +1,19 @@
 from flask import Flask, jsonify, request
 from datetime import datetime, timedelta
 from flask_cors import CORS # Import this
-
+import copy
 app = Flask(__name__)
 CORS(app)
 # --- Mock Data ---
 
 # Projects List (Used by /api/projects/)
+delivery_cycle = {"initiation":12, "execution": 53,"closure":55,"on_hold":2}
 projects_db = [
     {
         "project": {
             "project_id": i,
             "project_code": f"PROJ-{100+i}",
-            "project_name": f"Project Name ABC {chr(64+i)}",
+            "project_name": f"Project Name Colibri Nasstar {chr(64+i)}",
             "client_name": f"Client {chr(65+i)}",
             "client_id": f"CL-{i}",
             "stage": "Discovery",
@@ -36,27 +37,29 @@ projects_db = [
         },
         "current_status": {
             "health_status": "green" if i % 2 == 0 else "amber",
-            "risk_area": "Budget",
+            "rag_by_revenue": "green" if i % 3 == 0 else "amber",
+            "risk_area": "Technical solution",
             "mitigation_plan": f"On track with milestones for {chr(64+i)} but if any delay occurs, we will reallocate resources.",
             "comments": "Everything is proceeding as expected.Everything is proceeding as expected.Everything is proceeding as expected.",
             "updated_by": "Admin User",
             "updated_at": "2026-04-24T10:43:44.737Z",
+            "delivery_cycle":f"{list(delivery_cycle.keys())[i%4]}",
             "version": 1
         }
     }
     for i in range(1, 11)
 ]
 
-# RAG Distribution (Used by /api/projects/overview/rag-distribution)
+# RAG Distribution (Used by /api/projects/overview/rag-project-health)
 rag_data = {"red_count": 2, "amber_count": 4, "green_count": 4, "total_count": 20, "completed_count": 10}
-
+rag_data_revenue = {"red_count": 5, "amber_count": 1, "green_count": 4, "total_count": 20, "completed_count": 10}
 # Engagements by PM/Client (Used by /api/projects/overview/engagements-by-*)
 engagements_pm = {"Manager 0": 3, "Manager 1": 4, "Manager 2": 3,"Manager 4": 3, "Manager 1": 5, "Manager 2": 6, "Manager 3": 7, "Manager 8": 8}
 engagements_client = {"Client A": 3, "Client B": 3, "Client C": 2, "Client D": 2,"Client A1": 13, "Client B1": 13, "Client C1": 12, "Client D1": 12}
 
 
 closing_projects = {"in_30_days": 2, "in_45_days": 3}
-delivery_cycle = {"initiation":12, "execution": 53,"closure":55}
+
 
 
 # Change History (Used by /api/projects/<id>/change-history)
@@ -69,7 +72,9 @@ change_history_db = {
             "project_name": f"Project {chr(64+i)}",
             "client_name": f"Client {chr(64+i)}",
             "health_status": "green" if j > 1 else "red", # Example logic
-            "risk_area": "Resource allocation",
+            "rag_by_revenue": "green" if j > 1 else "red",
+            "risk_area": "Resource risk",
+            "delivery_cycle":"execution",
             "mitigation_plan": "Increasing headcount",
             "comments": f"Update iteration {j}",
             "updated_by": f"Admin {j}",
@@ -83,10 +88,60 @@ change_history_db = {
 # --- Routes ---/api/projects/overview/delivery-cycle
 
 @app.route('/api/projects/', methods=['GET'])
-def get_projects(): return jsonify(projects_db)
+def get_projects(): 
+    include_internal = request.args.get('include_internal', 'false').lower() == 'true'
+    if include_internal:
 
-@app.route('/api/projects/overview/rag-distribution', methods=['GET'])
+        result = copy.deepcopy(projects_db)
+        result.append({
+            "project": {
+                "project_id": 999,
+                "project_code": "INT-001",
+                "project_name": "Internal Platform Project",
+                "client_name": "Colibri",
+                "client_id": "INTERNAL",
+                "stage": "Delivery",
+                "project_manager": "Internal Manager",
+                "project_manager_email": "internal.pm@example.com",
+                "project_note": "Internal-only project",
+                "created_timestamp": "2026-04-01T10:00:00Z",
+                "project_modified_timestamp": "2026-04-24T09:51:41.680Z",
+                "budget_per_phase": False,
+                "project_status": 1,
+                "project_active": True,
+                "is_tentative": False,
+                "is_billable": False,
+                "project_tags": "internal,platform",
+                "total_budget": "0",
+                "budget_type": "Internal",
+                "budget_currency": "GBP",
+                "budget_currency_rate": 1.0,
+                "project_planned_start_date": "2026-02-01T10:00:00Z",
+                "project_planned_end_date": "2026-12-31T18:00:00Z"
+            },
+            "current_status": {
+                "health_status": "green",
+                "rag_by_revenue": "green",
+                "risk_area": "None",
+                "mitigation_plan": "N/A",
+                "comments": "Internal delivery on track",
+                "updated_by": "System",
+                "updated_at": "2026-04-24T10:43:44.737Z",
+                "delivery_cycle": "Quarterly",
+                "version": 1
+            }
+        })
+
+        return jsonify(result)
+
+
+    return jsonify(projects_db)
+
+@app.route('/api/projects/overview/rag-project-health', methods=['GET'])
 def get_rag(): return jsonify(rag_data)
+
+@app.route('/api/projects/overview/rag-project-revenue', methods=['GET'])
+def get_rag_revenue(): return jsonify(rag_data_revenue)
 
 @app.route('/api/projects/overview/engagements-by-pm', methods=['GET'])
 def get_engagements_pm(): return jsonify(engagements_pm)
@@ -113,6 +168,18 @@ def get_project(project_id):
 @app.route('/api/projects/<int:project_id>/change-history', methods=['GET'])
 def get_history(project_id): return jsonify(change_history_db.get(project_id, []))
 
+@app.route('/api/projects/<int:project_id>/rag-trend', methods=['GET'])
+def get_rag_trend(project_id):
+    h = sorted(change_history_db.get(project_id, []), key=lambda x: x["updated_at"])[-3:]
+    return jsonify({
+        "health_status": [{"value": i["health_status"], "updated_at": i["updated_at"]} for i in h],
+        "rag_by_revenue": [{"value": i["rag_by_revenue"], "updated_at": i["updated_at"]} for i in h]+ [   {
+      "updated_at": "2026-04-26T15:05:57.177933Z",
+      "value": "amber"
+    }]
+    })
+
+
 @app.route('/api/projects/<int:project_id>/team', methods=['GET'])
 def get_team(project_id): return jsonify({ "team":["Abit K Sebin", "Sean Reeve", "Darren"]})
 
@@ -124,6 +191,7 @@ def search():
 @app.route('/api/projects/<int:project_id>/status-update', methods=['POST'])
 def update_status(project_id):
     data = request.get_json()
+    print(data)
     if not data:
         # 400 Bad Request
         return jsonify({"error": "No data provided"}), 400

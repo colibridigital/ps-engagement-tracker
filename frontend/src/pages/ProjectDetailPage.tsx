@@ -20,11 +20,18 @@ import {
 import apiClient from "../api/client";
 import HealthBadge from "../components/HealthBadge";
 import HealthUpdateModal from "../components/HealthUpdateModal";
+import RagTrend from "../components/RagTrend";
 import toast from "react-hot-toast";
-import { ProjectListItem, ProjectDetail } from "../types";
+import {
+  ProjectListItem,
+  ProjectDetail,
+  DELIVERY_CYCLE_LABELS,
+  RagTrendResponse,
+} from "../types/index";
 
 const QUERY_KEYS = {
   projectDetail: (id: number) => ["projectDetail", id],
+  ragTrend: (id: number) => ["ragTrend", id],
   changeHistory: (id: number) => ["changeHistory", id],
 };
 
@@ -42,6 +49,11 @@ export default function ProjectDetailPage() {
   const { data: detail, isLoading } = useQuery<ProjectDetail>({
     queryKey: QUERY_KEYS.projectDetail(numericProjectId),
     queryFn: () => apiClient.getProjectDetail(numericProjectId),
+  });
+
+  const { data: trendData } = useQuery<RagTrendResponse>({
+    queryKey: QUERY_KEYS.ragTrend(numericProjectId),
+    queryFn: () => apiClient.getRagTrend(numericProjectId),
   });
 
   const { data: teamData } = useQuery({
@@ -78,6 +90,7 @@ export default function ProjectDetailPage() {
     last_updated: detail.current_status?.updated_at,
     current_mitigation_plan: detail.current_status?.mitigation_plan,
     current_comments: detail.current_status?.comments,
+    delivery_cycle: detail.current_status?.delivery_cycle,
   };
 
   return (
@@ -120,30 +133,77 @@ export default function ProjectDetailPage() {
               <ShieldAlert className="w-5 h-5 mr-2" />
               Project Status
             </h3>
-            <div className="space-y-4">
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-x-8 gap-y-4">
+              {/* Project Health Status */}
               <div>
-                <p className="text-sm text-gray-500 mb-2">RAG Status</p>
-                <HealthBadge
-                  status={detail.current_status?.health_status}
-                  size="md"
-                />
+                <p className="text-sm text-gray-500 mb-2">
+                  Project Health Status
+                </p>
+                <div className="flex items-end">
+                  <HealthBadge
+                    status={detail.current_status?.health_status}
+                    size="md"
+                  />
+                  <div className="ml-auto pl-8 pr-4">
+                    <RagTrend
+                      trend={trendData?.health_status_trend}
+                      count={5}
+                    />
+                  </div>
+                </div>
+                <div className="mt-4">
+                  <InfoItem
+                    label="Delivery Cycle"
+                    value={
+                      detail.current_status?.delivery_cycle
+                        ? DELIVERY_CYCLE_LABELS[
+                            detail.current_status.delivery_cycle
+                          ]
+                        : undefined
+                    }
+                  />
+                  <div className="mt-4">
+                    <InfoItem
+                      label="Mitigation Plan"
+                      value={detail.current_status?.mitigation_plan}
+                      preWrap
+                    />
+                  </div>
+                </div>
               </div>
-              {detail.current_status && (
-                <>
+              {/* RAG by Revenue */}
+              <div>
+                <p className="text-sm text-gray-500 mb-2">RAG by Revenue</p>
+                <div className="flex items-end">
+                  <HealthBadge
+                    status={detail.current_status?.rag_by_revenue}
+                    size="md"
+                  />
+                  <div className="ml-auto pl-8 pr-4">
+                    <RagTrend
+                      trend={trendData?.rag_by_revenue_trend}
+                      count={5}
+                    />
+                  </div>
+                </div>
+                <div className="mt-4">
                   <InfoItem
                     label="Risk Area"
-                    value={detail.current_status.risk_area}
+                    value={detail.current_status?.risk_area}
                   />
-                  <InfoItem
-                    label="Mitigation Plan"
-                    value={detail.current_status.mitigation_plan}
-                    preWrap
-                  />
-                  <InfoItem
-                    label="Comments"
-                    value={detail.current_status.comments}
-                    preWrap
-                  />
+                  <div className="mt-4">
+                    <InfoItem
+                      label="Comments"
+                      value={detail.current_status?.comments}
+                      preWrap
+                    />
+                  </div>
+                </div>
+              </div>
+            </div>
+            <div className="space-y-4 mt-4">
+              {detail.current_status && (
+                <>
                   <div>
                     <p className="text-sm text-gray-500">Last Updated</p>
                     <p className="text-sm font-medium text-gray-900">

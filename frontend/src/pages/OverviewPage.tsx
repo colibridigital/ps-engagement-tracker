@@ -11,11 +11,16 @@ import apiClient from "../api/client";
 import { useUIStore } from "../store/ui";
 
 import HealthUpdateModal from "../components/HealthUpdateModal";
-import { ProjectListItem } from "../types";
+import {
+  ProjectListItem,
+  DeliveryCycle,
+  DELIVERY_CYCLE_LABELS,
+} from "../types/index";
 
 const QUERY_KEYS = {
   projects: ["projects"],
   distribution: ["healthDistribution"],
+  revenueDistribution: ["revenueHealthDistribution"],
   engagementsByPM: ["engagementsByPM"],
   deliveryCycle: ["deliveryCycle"],
   engagementsByClient: ["engagementsByClient"],
@@ -44,6 +49,11 @@ export default function OverviewPage() {
     queryFn: () => apiClient.getHealthDistribution(includeInternal),
   });
 
+  const { data: revenueDistribution } = useQuery({
+    queryKey: [...QUERY_KEYS.revenueDistribution, includeInternal],
+    queryFn: () => apiClient.getRevenueHealthDistribution(includeInternal),
+  });
+
   const { data: pmSummary = [] } = useQuery({
     queryKey: [...QUERY_KEYS.engagementsByPM, includeInternal],
     queryFn: () => apiClient.getEngagementsByProjectManager(includeInternal),
@@ -54,17 +64,21 @@ export default function OverviewPage() {
     queryKey: [...QUERY_KEYS.deliveryCycle, includeInternal],
     queryFn: () => apiClient.getDeliveryCycleSummary(includeInternal),
     select: (data) => {
-      const labels = {
-        initiation: "Initiation",
-        closure: "Closure & Hypercare",
-        execution: "Execution",
-      };
+      // Define the desired order and corresponding labels
+      const orderedKeys: DeliveryCycle[] = [
+        DeliveryCycle.INITIATION,
+        DeliveryCycle.EXECUTION,
+        DeliveryCycle.CLOSURE,
+        DeliveryCycle.ON_HOLD,
+      ];
 
-      // Convert to the array format used by your components
-      return Object.entries(data).map(([key, count]) => ({
-        label: labels[key] || key,
-        count,
-      }));
+      // Map over the ordered keys to ensure the correct display order
+      return orderedKeys
+        .filter((key) => data && typeof data[key] !== "undefined") // Ensure key exists in data
+        .map((key) => ({
+          label: DELIVERY_CYCLE_LABELS[key],
+          count: data[key],
+        }));
     },
   });
 
@@ -124,70 +138,126 @@ export default function OverviewPage() {
         <h1 className="text-xl font-bold text-gray-900">
           Overall Projects Summary
         </h1>
-        <p className="text-gray-600">Project engagements summary and metrics</p>
+        <p className="text-gray-600">Project Engagement Summary and Metrics</p>
       </div>
 
-      {/* 1. Full Width Top Row: RAG Status */}
-      <div className="bg-white rounded-lg shadow p-6">
-        {/* Combined Title and Total Count in header to save vertical space */}
-        <div className="flex justify-between items-center mb-6">
-          <h3 className="text-lg font-semibold">Overall Projects Health</h3>
-          <span className="text-xs font-bold text-gray-400 bg-gray-50 px-3 py-1 rounded-full uppercase">
-            {distribution?.total_count || 0} Total Projects
-          </span>
+      {/* 1. RAG Status Row */}
+      <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+        {/* Overall Projects Health Card */}
+        <div className="bg-white rounded-lg shadow p-6">
+          <div className="flex justify-between items-center mb-6">
+            <h3 className="text-lg font-semibold">Overall Projects Health</h3>
+            <span className="text-xs font-bold text-gray-400 bg-gray-50 px-3 py-1 rounded-full uppercase">
+              {distribution?.total_count || 0} Total Projects
+            </span>
+          </div>
+
+          {distribution && (
+            <div className="grid grid-cols-1 gap-3">
+              {[
+                {
+                  label: "Red",
+                  count: distribution.red_count,
+                  color: "bg-red-500",
+                },
+                {
+                  label: "Amber",
+                  count: distribution.amber_count,
+                  color: "bg-amber-500",
+                },
+                {
+                  label: "Green",
+                  count: distribution.green_count,
+                  color: "bg-emerald-500",
+                },
+                {
+                  label: "Completed",
+                  count: distribution.completed_count || 0,
+                  color: "bg-blue-500",
+                },
+              ].map((status) => (
+                <div key={status.label} className="flex items-center gap-4">
+                  <div className="w-24 flex justify-between text-xs">
+                    <span className="text-gray-600 font-medium">
+                      {status.label}
+                    </span>
+                    <span className="font-bold text-gray-900">
+                      {status.count}
+                    </span>
+                  </div>
+                  <div className="flex-1 h-1.5 bg-gray-100 rounded-full overflow-hidden">
+                    <div
+                      className={`h-full ${status.color}`}
+                      style={{
+                        width: `${distribution.total_count > 0 ? (status.count / distribution.total_count) * 100 : 0}%`,
+                      }}
+                    />
+                  </div>
+                </div>
+              ))}
+            </div>
+          )}
         </div>
 
-        {distribution && (
-          <div className="grid grid-cols-1 gap-3 max-w-4xl">
-            {[
-              {
-                label: "Red",
-                count: distribution.red_count,
-                color: "bg-red-500",
-              },
-              {
-                label: "Amber",
-                count: distribution.amber_count,
-                color: "bg-amber-500",
-              },
-              {
-                label: "Green",
-                count: distribution.green_count,
-                color: "bg-emerald-500",
-              },
-              {
-                label: "Completed",
-                count: distribution.completed_count || 0,
-                color: "bg-blue-500",
-              },
-            ].map((status) => (
-              <div key={status.label} className="flex items-center gap-4">
-                {/* Label and Count (Fixed width to align bars) */}
-                <div className="w-24 flex justify-between text-xs">
-                  <span className="text-gray-600 font-medium">
-                    {status.label}
-                  </span>
-                  <span className="font-bold text-gray-900">
-                    {status.count}
-                  </span>
-                </div>
-
-                {/* progress bar */}
-                <div className="flex-1 h-1.5 bg-gray-100 rounded-full overflow-hidden">
-                  <div
-                    className={`h-full ${status.color}`}
-                    style={{
-                      width: `${distribution.total_count > 0 ? (status.count / distribution.total_count) * 100 : 0}%`,
-                    }}
-                  />
-                </div>
-              </div>
-            ))}
+        {/* RAG by Revenue Card */}
+        <div className="bg-white rounded-lg shadow p-6">
+          <div className="flex justify-between items-center mb-6">
+            <h3 className="text-lg font-semibold">RAG by revenue</h3>
+            <span className="text-xs font-bold text-gray-400 bg-gray-50 px-3 py-1 rounded-full uppercase">
+              {revenueDistribution?.total_count || 0} Total Projects
+            </span>
           </div>
-        )}
+
+          {revenueDistribution && (
+            <div className="grid grid-cols-1 gap-3">
+              {[
+                {
+                  label: "Red",
+                  count: revenueDistribution.red_count,
+                  color: "bg-red-500",
+                },
+                {
+                  label: "Amber",
+                  count: revenueDistribution.amber_count,
+                  color: "bg-amber-500",
+                },
+                {
+                  label: "Green",
+                  count: revenueDistribution.green_count,
+                  color: "bg-emerald-500",
+                },
+                {
+                  label: "Completed",
+                  count: revenueDistribution.completed_count || 0,
+                  color: "bg-blue-500",
+                },
+              ].map((status) => (
+                <div key={status.label} className="flex items-center gap-4">
+                  <div className="w-24 flex justify-between text-xs">
+                    <span className="text-gray-600 font-medium">
+                      {status.label}
+                    </span>
+                    <span className="font-bold text-gray-900">
+                      {status.count}
+                    </span>
+                  </div>
+                  <div className="flex-1 h-1.5 bg-gray-100 rounded-full overflow-hidden">
+                    <div
+                      className={`h-full ${status.color}`}
+                      style={{
+                        width: `${revenueDistribution.total_count > 0 ? (status.count / revenueDistribution.total_count) * 100 : 0}%`,
+                      }}
+                    />
+                  </div>
+                </div>
+              ))}
+            </div>
+          )}
+        </div>
       </div>
 
       {/* 2. Three Column Summary Row */}
+
       <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
         {[
           { title: "Project Managers | Delivery Lead", data: pmSummary },

@@ -2,8 +2,8 @@ import React from "react";
 import { Link, useParams } from "react-router-dom";
 import { useQuery } from "@tanstack/react-query";
 import apiClient from "../api/client";
-import { ProjectHealthUpdate } from "../types";
 import HealthBadge from "../components/HealthBadge";
+import { ProjectHealthUpdate, DELIVERY_CYCLE_LABELS } from "../types";
 import { ArrowLeft } from "lucide-react";
 
 const QUERY_KEYS = {
@@ -63,6 +63,12 @@ export default function ChangeHistoryPage() {
                 Status
               </th>
               <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase">
+                RAG by Revenue
+              </th>
+              <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase">
+                Delivery Cycle
+              </th>
+              <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase">
                 Risk Area
               </th>
               <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase">
@@ -76,13 +82,13 @@ export default function ChangeHistoryPage() {
           <tbody className="divide-y">
             {isLoading ? (
               <tr>
-                <td colSpan={6} className="px-6 py-4 text-center text-gray-500">
+                <td colSpan={8} className="px-6 py-4 text-center text-gray-500">
                   Loading change history...
                 </td>
               </tr>
             ) : changeHistory.length === 0 ? (
               <tr>
-                <td colSpan={6} className="px-6 py-4 text-center text-gray-500">
+                <td colSpan={8} className="px-6 py-4 text-center text-gray-500">
                   No change history records found.
                 </td>
               </tr>
@@ -97,6 +103,14 @@ export default function ChangeHistoryPage() {
                   </td>
                   <td className="px-6 py-4">
                     <HealthBadge status={record.health_status} />
+                  </td>
+                  <td className="px-6 py-4">
+                    <HealthBadge status={record.rag_by_revenue} />
+                  </td>
+                  <td className="px-6 py-4 text-gray-700">
+                    {record.delivery_cycle
+                      ? DELIVERY_CYCLE_LABELS[record.delivery_cycle]
+                      : "-"}
                   </td>
                   <td className="px-6 py-4 text-gray-700">
                     {record.risk_area || "-"}

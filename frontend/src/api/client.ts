@@ -15,8 +15,13 @@ import {
   ProjectSearchResponse,
   StatusUpdateCreate,
   StatusUpdateResponse,
-} from "../types";
-import { HealthStatus } from "../types";
+} from "../types/index";
+import {
+  HealthStatus,
+  RagTrendResponse,
+  RagTrendItem,
+  DeliveryCycle,
+} from "../types/index";
 
 class APIClient {
   private client: AxiosInstance;
@@ -90,7 +95,9 @@ class APIClient {
     updatedBy: string,
     healthStatus: HealthStatus,
     riskArea?: string,
+    ragByRevenue?: HealthStatus,
     mitigationPlan?: string,
+    deliveryCycle?: DeliveryCycle,
     comments?: string,
   ): Promise<StatusUpdateResponse> {
     // The structure of the payload (the body) remains the same
@@ -98,7 +105,9 @@ class APIClient {
       updated_by: updatedBy,
       health_status: healthStatus,
       risk_area: riskArea,
+      rag_by_revenue: ragByRevenue,
       mitigation_plan: mitigationPlan,
+      delivery_cycle: deliveryCycle,
       comments: comments,
     };
 
@@ -134,7 +143,22 @@ class APIClient {
     includeInternal: boolean = false,
   ): Promise<HealthStatusDistribution> {
     const response = await this.client.get<HealthStatusDistribution>(
-      "/api/projects/overview/rag-distribution",
+      "/api/projects/overview/rag-project-health",
+      {
+        params: { include_internal: includeInternal },
+      },
+    );
+    return response.data;
+  }
+
+  /**
+   * Get health status distribution by revenue
+   */
+  async getRevenueHealthDistribution(
+    includeInternal: boolean = false,
+  ): Promise<HealthStatusDistribution> {
+    const response = await this.client.get<HealthStatusDistribution>(
+      "/api/projects/overview/rag-project-revenue",
       {
         params: { include_internal: includeInternal },
       },
@@ -189,6 +213,30 @@ class APIClient {
       `/api/projects/${projectId}/team`,
     );
     return response.data;
+  }
+
+  /**
+   * Get RAG trend for a project
+   */
+  async getRagTrend(projectId: number): Promise<RagTrendResponse> {
+    // The raw response from the mock API has a different structure
+    const response = await this.client.get<{
+      health_status: { value: HealthStatus; updated_at: string }[];
+      rag_by_revenue: { value: HealthStatus; updated_at: string }[];
+    }>(`/api/projects/${projectId}/rag-trend`);
+
+    // Transform the data to match the RagTrendResponse interface
+    const transformedData: RagTrendResponse = {
+      health_status_trend: response.data.health_status.map((item) => ({
+        value: item.value,
+        updatedAt: item.updated_at,
+      })),
+      rag_by_revenue_trend: response.data.rag_by_revenue.map((item) => ({
+        value: item.value,
+        updatedAt: item.updated_at,
+      })),
+    };
+    return transformedData;
   }
 }
 
