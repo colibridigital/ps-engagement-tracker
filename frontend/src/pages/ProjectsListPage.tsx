@@ -5,8 +5,11 @@ import { Link } from "react-router-dom";
 import apiClient from "../api/client";
 import HealthBadge from "../components/HealthBadge";
 import { useUIStore } from "../store/ui"; // Assuming this is where searchTerm is managed
-import TooltipText from "../components/TooltipText";
-import { ProjectListItem } from "../types";
+import {
+  ProjectListItem,
+  DeliveryCycle,
+  DELIVERY_CYCLE_LABELS,
+} from "../types";
 
 const QUERY_KEYS = {
   projects: ["projects"],
@@ -33,7 +36,8 @@ export default function ProjectsListPage() {
   const [statusFilter, setStatusFilter] = useState("");
   const [pmFilter, setPmFilter] = useState("");
   const [clientFilter, setClientFilter] = useState("");
-  const [sltFilter, setSltFilter] = useState("");
+  // const [sltFilter, setSltFilter] = useState("");
+  const [deliveryCycleFilter, setDeliveryCycleFilter] = useState("");
   const [showAdvancedFilters, setShowAdvancedFilters] = useState(false);
   const [pagination, setPagination] = useState({
     page: 1,
@@ -62,6 +66,7 @@ export default function ProjectsListPage() {
           risk_area: item.current_status?.risk_area,
           current_mitigation_plan: item.current_status?.mitigation_plan,
           current_comments: item.current_status?.comments,
+          delivery_cycle: item.current_status?.delivery_cycle,
           last_updated: item.current_status?.updated_at,
         };
       });
@@ -97,20 +102,20 @@ export default function ProjectsListPage() {
     const statuses = new Set<string>();
     const pms = new Set<string>();
     const clients = new Set<string>();
-    const slts = new Set<string>();
+    // const slts = new Set<string>();
 
     allProjects.forEach((p) => {
       if (p.current_health_status) statuses.add(p.current_health_status);
       if (p.project_manager_name) pms.add(p.project_manager_name);
       if (p.client_name) clients.add(p.client_name);
-      if (p.slt) slts.add(p.slt);
+      // if (p.slt) slts.add(p.slt);
     });
 
     return {
       statuses: [...statuses].sort(),
       pms: [...pms].sort(),
       clients: [...clients].sort(),
-      slts: [...slts].sort(),
+      // slts: [...slts].sort(),
     };
   }, [allProjects]);
 
@@ -148,8 +153,14 @@ export default function ProjectsListPage() {
       projects = projects.filter((p) => p.client_name === clientFilter);
     }
 
-    if (sltFilter) {
-      projects = projects.filter((p) => p.slt === sltFilter);
+    // if (sltFilter) {
+    //   projects = projects.filter((p) => p.slt === sltFilter);
+    // }
+
+    if (deliveryCycleFilter) {
+      projects = projects.filter(
+        (p) => p.delivery_cycle === deliveryCycleFilter,
+      );
     }
 
     if (sortConfig !== null) {
@@ -175,7 +186,8 @@ export default function ProjectsListPage() {
     statusFilter,
     pmFilter,
     clientFilter,
-    sltFilter,
+    // sltFilter,
+    deliveryCycleFilter,
   ]);
 
   const clearFilters = () => {
@@ -183,7 +195,8 @@ export default function ProjectsListPage() {
     setStatusFilter("");
     setPmFilter("");
     setClientFilter("");
-    setSltFilter("");
+    // setSltFilter("");
+    setDeliveryCycleFilter("");
     setIncludeInternal(false);
   };
 
@@ -192,12 +205,13 @@ export default function ProjectsListPage() {
     !!statusFilter ||
     !!pmFilter ||
     !!clientFilter ||
-    !!sltFilter ||
+    // !!sltFilter ||
+    !!deliveryCycleFilter ||
     includeInternal;
 
   return (
     <div className="p-6">
-      <div className="mb-8 flex flex-col gap-3 md:flex-row md:items-end md:justify-between">
+      <div className="mb-3 flex flex-col gap-3 md:flex-row md:items-end md:justify-between">
         <div>
           <h1 className="text-xl font-bold text-gray-900">Projects</h1>
           <p className="text-gray-600">Browse and search active projects</p>
@@ -209,7 +223,7 @@ export default function ProjectsListPage() {
         )}
       </div>
 
-      <div className="bg-white rounded-lg shadow p-4 mb-6">
+      <div className="bg-white rounded-lg shadow p-3 mb-6">
         <div className="flex flex-col gap-4">
           {/* Primary Filter Row */}
           <div className="flex gap-2 items-center">
@@ -220,12 +234,12 @@ export default function ProjectsListPage() {
                 placeholder="Search by project name or code..."
                 value={searchTerm}
                 onChange={(e) => setSearchTerm(e.target.value)}
-                className="w-full pl-10 pr-4 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
+                className="w-full pl-10 pr-4 py-1 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
               />
             </div>
             <button
               onClick={() => setShowAdvancedFilters(!showAdvancedFilters)}
-              className="flex items-center px-4 py-2 border border-gray-300 text-gray-700 rounded-md hover:bg-gray-50"
+              className="flex items-center px-4 py-1 border border-gray-300 text-gray-700 rounded-md hover:bg-gray-50"
             >
               <Filter className="w-4 h-4 mr-2" />
               Filters
@@ -235,7 +249,7 @@ export default function ProjectsListPage() {
           {/* Advanced Filters (collapsible) */}
           {showAdvancedFilters && (
             <div className="border-t pt-4">
-              <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4 items-end">
+              <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4 items-end ">
                 <div>
                   <label
                     htmlFor="status-filter"
@@ -299,7 +313,7 @@ export default function ProjectsListPage() {
                     ))}
                   </select>
                 </div>
-                <div>
+                {/* <div>
                   <label
                     htmlFor="slt-filter"
                     className="block text-sm font-medium text-gray-700 mb-1"
@@ -319,19 +333,31 @@ export default function ProjectsListPage() {
                       </option>
                     ))}
                   </select>
-                </div>
-                <div className="flex items-center h-10">
-                  <label className="flex items-center space-x-2 text-sm text-gray-600">
-                    <input
-                      type="checkbox"
-                      checked={includeInternal}
-                      onChange={(e) => setIncludeInternal(e.target.checked)}
-                      className="rounded border-gray-300 text-blue-600 focus:ring-blue-500"
-                    />
-                    <span>Show internal projects</span>
+                </div> */}
+                <div>
+                  <label
+                    htmlFor="delivery-cycle-filter"
+                    className="block text-sm font-medium text-gray-700 mb-1"
+                  >
+                    Delivery Cycle
                   </label>
+                  <select
+                    id="delivery-cycle-filter"
+                    value={deliveryCycleFilter}
+                    onChange={(e) => setDeliveryCycleFilter(e.target.value)}
+                    className="w-full px-3 py-1 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500 bg-white text-sm"
+                  >
+                    <option value="">All</option>
+                    {Object.entries(DELIVERY_CYCLE_LABELS).map(
+                      ([key, label]) => (
+                        <option key={key} value={key}>
+                          {label}
+                        </option>
+                      ),
+                    )}
+                  </select>
                 </div>
-                <div className="lg:col-start-4 flex items-center justify-end h-1">
+                <div className="lg:col-span-5 lg:col-start-5 flex items-center justify-end h-1">
                   {hasActiveFilters && (
                     <button
                       onClick={clearFilters}
@@ -358,8 +384,9 @@ export default function ProjectsListPage() {
                   { key: "project_code", label: "Code" },
                   { key: "client_name", label: "Client" },
                   { key: "project_manager_name", label: "Project Manager" },
-                  { key: "slt", label: "SLT" },
-                  { key: "current_health_status", label: "Status" },
+                  // { key: "slt", label: "SLT" },
+                  { key: "current_health_status", label: "Project Health" },
+                  { key: "delivery_cycle", label: "Delivery Cycle" },
                 ] as const
               ).map(({ key, label }) => (
                 <th
@@ -398,7 +425,7 @@ export default function ProjectsListPage() {
             {isLoading ? (
               <tr>
                 <td
-                  colSpan={12}
+                  colSpan={13}
                   className="px-6 py-4 text-center text-gray-500"
                 >
                   Loading projects...
@@ -407,7 +434,7 @@ export default function ProjectsListPage() {
             ) : sortedAndFilteredProjects.length === 0 ? (
               <tr>
                 <td
-                  colSpan={12}
+                  colSpan={13}
                   className="px-6 py-4 text-center text-gray-500"
                 >
                   No projects found
@@ -430,11 +457,16 @@ export default function ProjectsListPage() {
                   <td className="px-6 py-4 text-gray-600">
                     {project.project_manager_name || "-"}
                   </td>
-                  <td className="px-6 py-4 text-gray-600">
+                  {/* <td className="px-6 py-4 text-gray-600">
                     {project.slt || "-"}
-                  </td>
+                  </td> */}
                   <td className="px-6 py-4">
                     <HealthBadge status={project.current_health_status} />
+                  </td>
+                  <td className="px-6 py-4 text-gray-600">
+                    {(project.delivery_cycle &&
+                      DELIVERY_CYCLE_LABELS[project.delivery_cycle]) ??
+                      "-"}
                   </td>
                   <td className="px-6 py-4 text-sm text-gray-600">
                     <div
