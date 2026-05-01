@@ -17,7 +17,7 @@ projects_db = [
             "client_name": f"Client {chr(65+i)}",
             "client_id": f"CL-{i}",
             "stage": "Discovery",
-            "project_manager": f"Manager {i%3}",
+            "project_manager_name": f"Manager {i%3}",
             "project_manager_email": f"pm{i}@example.com",
             "project_note": "Standard project note",
             "created_timestamp": "2026-04-20T10:00:00Z",
@@ -67,10 +67,9 @@ closing_projects = {"in_30_days": 2, "in_45_days": 3}
 change_history_db = {
     i: [
         {
-            "id": i,
+            "project_id": i,
             "project_code": f"PROJ-{100+i}",
             "project_name": f"Project {chr(64+i)}",
-            "client_name": f"Client {chr(64+i)}",
             "health_status": "green" if j > 1 else "red", # Example logic
             "rag_by_revenue": "green" if j > 1 else "red",
             "risk_area": "Resource risk",
@@ -101,7 +100,7 @@ def get_projects():
                 "client_name": "Colibri",
                 "client_id": "INTERNAL",
                 "stage": "Delivery",
-                "project_manager": "Internal Manager",
+                "project_manager_name": "Internal Manager",
                 "project_manager_email": "internal.pm@example.com",
                 "project_note": "Internal-only project",
                 "created_timestamp": "2026-04-01T10:00:00Z",
@@ -181,7 +180,7 @@ def get_rag_trend(project_id):
 
 
 @app.route('/api/projects/<int:project_id>/team', methods=['GET'])
-def get_team(project_id): return jsonify({ "team":["Abit K Sebin", "Sean Reeve", "Darren"]})
+def get_team(project_id): return jsonify({ "team":[{"name": "Abit","email":"abit.sebin@colibridigital.io","role":"developer"}, {"name": "Alex","email":"example2@colibridigital.io"}, {"name": "John","email":"example3@colibridigital.io"}]})
 
 @app.route('/api/projects/search', methods=['GET'])
 def search():

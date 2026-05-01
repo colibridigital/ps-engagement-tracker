@@ -2,7 +2,7 @@ import React from "react";
 import { Link, useParams } from "react-router-dom";
 import { useQuery } from "@tanstack/react-query";
 import apiClient from "../api/client";
-import HealthBadge from "../components/HealthBadge";
+import HealthBadge from "../components/HealthBadge"; //
 import { ProjectHealthUpdate, DELIVERY_CYCLE_LABELS } from "../types";
 import { ArrowLeft } from "lucide-react";
 
@@ -32,6 +32,13 @@ export default function ChangeHistoryPage() {
     return <div className="p-6">Project ID not found</div>;
   }
 
+  if (isLoading) {
+    return <div className="p-6">Loading change history...</div>;
+  }
+
+  const projectName = changeHistory[0]?.project_name || "Project";
+  const projectCode = changeHistory[0]?.project_code || "";
+
   return (
     <div className="p-6">
       <div className="mb-6">
@@ -42,10 +49,15 @@ export default function ChangeHistoryPage() {
           <ArrowLeft className="w-4 h-4 mr-2" />
           Back to Project Details
         </Link>
+
         <h1 className="text-xl font-bold text-gray-900">Change History</h1>
         <p className="text-gray-600">
           History of changes to RAG status, mitigation plans, risk area, and
-          comments for project ID {numericProjectId}.
+          comments for{" "}
+          <span style={{ fontWeight: 500 }}>
+            {projectName}
+            {projectCode && ` (${projectCode})`}
+          </span>
         </p>
       </div>
 
@@ -94,7 +106,10 @@ export default function ChangeHistoryPage() {
               </tr>
             ) : (
               changeHistory.map((record: ProjectHealthUpdate) => (
-                <tr key={record.id} className="hover:bg-gray-50">
+                <tr
+                  key={`${record.project_id}-${record.updated_at}`}
+                  className="hover:bg-gray-50"
+                >
                   <td className="px-6 py-4 text-gray-700">
                     {record.updated_by || "-"}
                   </td>

@@ -66,6 +66,7 @@ export default function OverviewPage() {
     select: (data) => {
       // Define the desired order and corresponding labels
       const orderedKeys: DeliveryCycle[] = [
+        DeliveryCycle.STAFF_AUGMENTATION,
         DeliveryCycle.INITIATION,
         DeliveryCycle.EXECUTION,
         DeliveryCycle.CLOSURE,
@@ -88,28 +89,22 @@ export default function OverviewPage() {
     select: (data) => toLabelCount(data),
   });
 
-  const { data: closingProjectsSummary = [] } = useQuery({
-    queryKey: [...QUERY_KEYS.closingProjects, includeInternal],
-    queryFn: () => apiClient.getClosingProjects(includeInternal),
-    select: (data) => {
-      // Define the map of API keys to UI labels
-      const labels = {
-        in_30_days: "In 30 days",
-        in_45_days: "In 45 days",
-      };
-
-      // Convert to the array format used by your components
-      return Object.entries(data).map(([key, count]) => ({
-        label: labels[key] || key,
-        count,
-      }));
-    },
-  });
-
-  // const { data: closingProjects = [] } = useQuery({
+  // const { data: closingProjectsSummary = [] } = useQuery({
   //   queryKey: [...QUERY_KEYS.closingProjects, includeInternal],
   //   queryFn: () => apiClient.getClosingProjects(includeInternal),
-  //   select: (data) => toLabelCount(data),
+  //   select: (data) => {
+  //     // Define the map of API keys to UI labels
+  //     const labels = {
+  //       in_30_days: "In 30 days",
+  //       in_45_days: "In 45 days",
+  //     };
+
+  //     // Convert to the array format used by your components
+  //     return Object.entries(data).map(([key, count]) => ({
+  //       label: labels[key] || key,
+  //       count,
+  //     }));
+  //   },
   // });
 
   const handleHealthUpdate = (project: ProjectListItem) => {
@@ -258,21 +253,61 @@ export default function OverviewPage() {
 
       {/* 2. Three Column Summary Row */}
 
-      <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
-        {[
-          { title: "Project Managers | Delivery Lead", data: pmSummary },
+      <div className="grid grid-cols-1 md:grid-cols-3 gap-6 items-stretch">
+        {/* Project Managers | Delivery Lead Card */}
+        <div className="bg-white rounded-lg shadow p-6">
+          <h3 className="text-lg font-semibold mb-4">
+            Project Managers | Delivery Lead
+          </h3>
+          <div className="space-y-3">
+            {pmSummary.length === 0 ? (
+              <p className="text-sm text-gray-400 italic">No data</p>
+            ) : (
+              pmSummary.map((item) => (
+                <div key={item.label} className="flex justify-between text-sm">
+                  <span className="text-gray-600 truncate mr-2">
+                    {item.label}
+                  </span>
+                  <span className="font-semibold text-gray-900 shrink-0">
+                    {item.count}
+                  </span>
+                </div>
+              ))
+            )}
+          </div>
+        </div>
 
-          { title: "Clients", data: clientSummary },
-          { title: "Delivery Cycle", data: deliveryCycleSummary },
-          { title: "Closing Projects", data: closingProjectsSummary },
-        ].map((section) => (
-          <div key={section.title} className="bg-white rounded-lg shadow p-6">
-            <h3 className="text-lg font-semibold mb-4">{section.title}</h3>
+        {/* Clients Card */}
+        <div className="bg-white rounded-lg shadow p-6">
+          <h3 className="text-lg font-semibold mb-4">Clients</h3>
+          <div className="space-y-3">
+            {clientSummary.length === 0 ? (
+              <p className="text-sm text-gray-400 italic">No data</p>
+            ) : (
+              clientSummary.map((item) => (
+                <div key={item.label} className="flex justify-between text-sm">
+                  <span className="text-gray-600 truncate mr-2">
+                    {item.label}
+                  </span>
+                  <span className="font-semibold text-gray-900 shrink-0">
+                    {item.count}
+                  </span>
+                </div>
+              ))
+            )}
+          </div>
+        </div>
+
+        {/* Delivery Cycle and Closing Projects Column */}
+        <div className="flex flex-col gap-6 h-full">
+          {/* Delivery Cycle Card */}
+          <div className="bg-white rounded-lg shadow p-6 h-64 overflow-y-auto">
+            <h3 className="text-lg font-semibold mb-4">Delivery Cycle</h3>
             <div className="space-y-3">
-              {section.data.length === 0 ? (
+              {deliveryCycleSummary.length === 0 ? (
                 <p className="text-sm text-gray-400 italic">No data</p>
               ) : (
-                section.data.slice(0, 5).map((item) => (
+                deliveryCycleSummary.map((item) => (
                   <div
                     key={item.label}
                     className="flex justify-between text-sm"
@@ -288,49 +323,32 @@ export default function OverviewPage() {
               )}
             </div>
           </div>
-        ))}
-      </div>
 
-      {/* 3. Closing Projects Table 
-      <div className="bg-white rounded-lg shadow p-6">
-        <div className="flex justify-between items-center mb-4">
-          <h3 className="text-lg font-semibold">
-            Closing Projects (Next 45 Days)
-          </h3>
-          <Link
-            to="/projects"
-            className="text-sm text-blue-600 hover:underline"
-          >
-            View all
-          </Link>
+          {/* Closing Projects Card
+          <div className="bg-white rounded-lg shadow p-6 h-64 overflow-y-auto">
+            <h3 className="text-lg font-semibold mb-4">Closing Projects</h3>
+            <div className="space-y-3">
+              {closingProjectsSummary.length === 0 ? (
+                <p className="text-sm text-gray-400 italic">No data</p>
+              ) : (
+                closingProjectsSummary.map((item) => (
+                  <div
+                    key={item.label}
+                    className="flex justify-between text-sm"
+                  >
+                    <span className="text-gray-600 truncate mr-2">
+                      {item.label}
+                    </span>
+                    <span className="font-semibold text-gray-900 shrink-0">
+                      {item.count}
+                    </span>
+                  </div>
+                ))
+              )}
+            </div>
+          </div> */}
         </div>
-        <div className="overflow-x-auto">
-          <table className="w-full text-left text-sm">
-            <thead className="text-gray-500 uppercase">
-              <tr>
-                <th className="py-3 pr-4">Project</th>
-                <th className="py-3 px-4">Client</th>
-                <th className="py-3 px-4">Manager</th>
-                <th className="py-3 pl-4">End Date</th>
-              </tr>
-            </thead>
-            <tbody className="text-gray-700">
-              {closingProjects.map((p) => (
-                <tr key={p.project_code}>
-                  <td className="py-3 pr-4 font-medium">{p.project_name}</td>
-                  <td className="py-3 px-4">{p.client_name}</td>
-                  <td className="py-3 px-4">{p.project_manager || "-"}</td>
-                  <td className="py-3 pl-4">
-                    {p.end_date
-                      ? new Date(p.end_date).toLocaleDateString()
-                      : "-"}
-                  </td>
-                </tr>
-              ))}
-            </tbody>
-          </table>
-        </div>
-      </div> */}
+      </div>
     </div>
   );
 }
