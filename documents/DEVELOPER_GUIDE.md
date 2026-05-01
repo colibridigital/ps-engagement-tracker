@@ -52,6 +52,9 @@ ps-engagement-tracker/
 │   ├── vite.config.ts
 │   ├── tsconfig.json
 │   └── .env.example
+├── documents/
+│   ├── ARCHITECTURE.md
+│   └── DEVELOPER_GUIDE.md
 └── README.md
 ```
 
@@ -259,13 +262,12 @@ npm run build
 
 ### Querying Databricks
 
-The `DatabricksConnector` in `backend/app/utils/databricks.py` handles all Databricks queries. For development, it returns mock data.
+The application connects to Databricks using the Databricks SQL Connector, with connection logic integrated into the backend's data access layer rather than a separate utility file. For development, this connection can be mocked to return sample data.
 
 To enable real Databricks integration:
 
 1. Set `DATABRICKS_TOKEN` and `DATABRICKS_WORKSPACE_URL`
-2. Update connection string in `databricks.py`
-3. Ensure your Databricks token has access to the specified catalog/schema
+2. Ensure your Databricks token has access to the specified catalog/schema
 
 ## Authentication
 
