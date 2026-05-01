@@ -4,13 +4,15 @@ import { Search, ArrowUpDown, X as ClearIcon, Filter } from "lucide-react";
 import { Link } from "react-router-dom";
 import apiClient from "../api/client";
 import HealthBadge from "../components/HealthBadge";
-import { useUIStore } from "../store/ui";
+import { useUIStore } from "../store/ui"; // Assuming this is where searchTerm is managed
 import TooltipText from "../components/TooltipText";
 import { ProjectListItem } from "../types";
 
 const QUERY_KEYS = {
   projects: ["projects"],
 };
+
+const INTERNAL_CLIENT_NAMES = ["Colibri", "Colibri Digital"];
 
 type SortDirection = "ascending" | "descending";
 type SortConfig = {
@@ -33,31 +35,41 @@ export default function ProjectsListPage() {
   const [clientFilter, setClientFilter] = useState("");
   const [sltFilter, setSltFilter] = useState("");
   const [showAdvancedFilters, setShowAdvancedFilters] = useState(false);
+  const [pagination, setPagination] = useState({
+    page: 1,
+    pageSize: 1000,
+  });
 
-  const { data: allProjects = [], isLoading } = useQuery<ProjectListItem[]>({
-    queryKey: [...QUERY_KEYS.projects, includeInternal, "transformed"],
+  const { data: projectData, isLoading } = useQuery({
+    queryKey: [...QUERY_KEYS.projects, includeInternal, pagination],
     queryFn: async () => {
-      const rawData = await apiClient.getProjects(includeInternal);
-      // This handles the nested structure from the mock API: [{ project: {...}, current_status: {...} }]
-      // It also handles a flat structure from the real API.
-      if (Array.isArray(rawData) && rawData.length > 0 && rawData[0].project) {
-        return rawData.map((item: any) => ({
+      // Pass pagination and search term to the API client
+      const response = await apiClient.getProjects(
+        includeInternal,
+        pagination.page,
+        pagination.pageSize,
+      );
+
+      // The API now returns a paginated object { results: [...] }.
+      // We need to transform the items inside the `results` array.
+      const transformedProjects = response.results.map((item: any) => {
+        // This handles the nested structure: { project: {...}, current_status: {...} }
+        return {
           ...item.project,
           ...item.current_status,
-          // Ensure a unique ID for keys, matching what the detail page expects.
-          // The real backend provides 'id', the mock provides 'project_id'.
           id: item.project.project_id || item.project.id,
           current_health_status: item.current_status?.health_status,
           risk_area: item.current_status?.risk_area,
           current_mitigation_plan: item.current_status?.mitigation_plan,
           current_comments: item.current_status?.comments,
           last_updated: item.current_status?.updated_at,
-        }));
-      }
+        };
+      });
 
-      return rawData.map((p: any) => ({ ...p, project_id: p.id }));
+      return { ...response, results: transformedProjects };
     },
   });
+  const allProjects = projectData?.results || [];
 
   const requestSort = (key: keyof ProjectListItem) => {
     let direction: SortDirection = "ascending";
@@ -89,7 +101,7 @@ export default function ProjectsListPage() {
 
     allProjects.forEach((p) => {
       if (p.current_health_status) statuses.add(p.current_health_status);
-      if (p.project_manager) pms.add(p.project_manager);
+      if (p.project_manager_name) pms.add(p.project_manager_name);
       if (p.client_name) clients.add(p.client_name);
       if (p.slt) slts.add(p.slt);
     });
@@ -106,15 +118,19 @@ export default function ProjectsListPage() {
     let projects = allProjects;
 
     if (!includeInternal) {
-      projects = projects.filter((p) => p.client_name !== "Colibri");
+      projects = projects.filter(
+        (p) => !INTERNAL_CLIENT_NAMES.includes(p.client_name || ""),
+      );
     }
 
     if (searchTerm) {
       const lowercasedFilter = searchTerm.toLowerCase();
       projects = projects.filter(
         (p) =>
-          p.project_name.toLowerCase().includes(lowercasedFilter) ||
-          p.project_code.toLowerCase().includes(lowercasedFilter),
+          (p.project_name &&
+            p.project_name.toLowerCase().includes(lowercasedFilter)) ||
+          (p.project_code &&
+            p.project_code.toLowerCase().includes(lowercasedFilter)),
       );
     }
 
@@ -125,7 +141,7 @@ export default function ProjectsListPage() {
     }
 
     if (pmFilter) {
-      projects = projects.filter((p) => p.project_manager === pmFilter);
+      projects = projects.filter((p) => p.project_manager_name === pmFilter);
     }
 
     if (clientFilter) {
@@ -186,6 +202,11 @@ export default function ProjectsListPage() {
           <h1 className="text-xl font-bold text-gray-900">Projects</h1>
           <p className="text-gray-600">Browse and search active projects</p>
         </div>
+        {projectData && (
+          <span className="text-sm font-bold text-gray-500 bg-gray-100 px-3 py-1 rounded-full">
+            {projectData.total_count} Total Projects
+          </span>
+        )}
       </div>
 
       <div className="bg-white rounded-lg shadow p-4 mb-6">
@@ -307,7 +328,7 @@ export default function ProjectsListPage() {
                       onChange={(e) => setIncludeInternal(e.target.checked)}
                       className="rounded border-gray-300 text-blue-600 focus:ring-blue-500"
                     />
-                    <span>Show internal projects (client = "Colibri")</span>
+                    <span>Show internal projects</span>
                   </label>
                 </div>
                 <div className="lg:col-start-4 flex items-center justify-end h-1">
@@ -336,7 +357,7 @@ export default function ProjectsListPage() {
                   { key: "project_name", label: "Project" },
                   { key: "project_code", label: "Code" },
                   { key: "client_name", label: "Client" },
-                  { key: "project_manager", label: "Project Manager" },
+                  { key: "project_manager_name", label: "Project Manager" },
                   { key: "slt", label: "SLT" },
                   { key: "current_health_status", label: "Status" },
                 ] as const
@@ -407,7 +428,7 @@ export default function ProjectsListPage() {
                     {project.client_name}
                   </td>
                   <td className="px-6 py-4 text-gray-600">
-                    {project.project_manager || "-"}
+                    {project.project_manager_name || "-"}
                   </td>
                   <td className="px-6 py-4 text-gray-600">
                     {project.slt || "-"}
@@ -457,6 +478,45 @@ export default function ProjectsListPage() {
             )}
           </tbody>
         </table>
+        {/* Pagination Controls */}
+        {projectData && projectData.total_count > pagination.pageSize && (
+          <div className="flex items-center justify-between p-4 border-t">
+            <span className="text-sm text-gray-600">
+              Showing{" "}
+              <b>
+                {(pagination.page - 1) * pagination.pageSize + 1}-
+                {Math.min(
+                  pagination.page * pagination.pageSize,
+                  projectData.total_count,
+                )}
+              </b>{" "}
+              of <b>{projectData.total_count}</b> projects
+            </span>
+            <div className="flex items-center gap-2">
+              <button
+                onClick={() =>
+                  setPagination((p) => ({ ...p, page: p.page - 1 }))
+                }
+                disabled={pagination.page <= 1}
+                className="px-3 py-1 border rounded-md text-sm disabled:opacity-50"
+              >
+                Previous
+              </button>
+              <button
+                onClick={() =>
+                  setPagination((p) => ({ ...p, page: p.page + 1 }))
+                }
+                disabled={
+                  pagination.page * pagination.pageSize >=
+                  projectData.total_count
+                }
+                className="px-3 py-1 border rounded-md text-sm disabled:opacity-50"
+              >
+                Next
+              </button>
+            </div>
+          </div>
+        )}
       </div>
     </div>
   );

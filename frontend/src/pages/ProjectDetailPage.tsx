@@ -243,7 +243,7 @@ export default function ProjectDetailPage() {
               <InfoItem
                 icon={Users}
                 label="Project Manager"
-                value={detail.project.project_manager}
+                value={detail.project.project_manager_name}
               />
               <InfoItem
                 icon={Mail}
@@ -263,16 +263,24 @@ export default function ProjectDetailPage() {
               <InfoItem
                 icon={Calendar}
                 label="Planned Start Date"
-                value={new Date(
-                  detail.project.project_planned_start_date,
-                ).toLocaleDateString()}
+                value={
+                  detail.project.project_planned_start_date
+                    ? new Date(
+                        detail.project.project_planned_start_date,
+                      ).toLocaleDateString()
+                    : ""
+                }
               />
               <InfoItem
                 icon={Calendar}
                 label="Planned End Date"
-                value={new Date(
-                  detail.project.project_planned_end_date,
-                ).toLocaleDateString()}
+                value={
+                  detail.project.project_planned_end_date
+                    ? new Date(
+                        detail.project.project_planned_end_date,
+                      ).toLocaleDateString()
+                    : ""
+                }
               />
               <InfoItem
                 icon={Clock}
@@ -347,9 +355,9 @@ export default function ProjectDetailPage() {
             </h3>
             <div className="text-sm text-gray-600">
               {teamData && teamData.team.length > 0 ? (
-                teamData.team.map((member, idx) => (
-                  <p key={idx} className="py-1">
-                    • {member.trim() || "N/A"}
+                teamData.team.map((member) => (
+                  <p key={member.email} className="py-1">
+                    • {member.name.trim() || "N/A"}
                   </p>
                 ))
               ) : (

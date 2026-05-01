@@ -14,6 +14,7 @@ export enum DeliveryCycle {
   EXECUTION = "execution",
   CLOSURE = "closure",
   ON_HOLD = "on_hold",
+  STAFF_AUGMENTATION = "staff_augmentation",
 }
 
 export const DELIVERY_CYCLE_LABELS: Record<DeliveryCycle, string> = {
@@ -21,6 +22,7 @@ export const DELIVERY_CYCLE_LABELS: Record<DeliveryCycle, string> = {
   [DeliveryCycle.EXECUTION]: "Execution",
   [DeliveryCycle.CLOSURE]: "Closure & Hypercare",
   [DeliveryCycle.ON_HOLD]: "On Hold",
+  [DeliveryCycle.STAFF_AUGMENTATION]: "Staff Augmentation",
 };
 
 export enum RiskArea {
@@ -92,7 +94,7 @@ export interface HealthStatusDistribution {
 }
 
 export interface ProjectHealthUpdate {
-  id: number;
+  project_id: number;
   project_code: string;
   project_name: string;
   client_name: string;
@@ -114,7 +116,13 @@ export interface ProjectDetail {
 }
 
 export interface ProjectTeam {
-  team: string[];
+  team: TeamMember[];
+}
+
+export interface TeamMember {
+  email: string;
+  name: string;
+  role?: string;
 }
 
 export interface ProjectListItem {
