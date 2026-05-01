@@ -6,6 +6,7 @@ import React from "react";
 import { Link, useLocation } from "react-router-dom";
 import { BarChart3, ListTodo, HelpCircle } from "lucide-react";
 import logo from "../assets/colibri_logo.png";
+import { useUIStore } from "../store/ui";
 
 export default function Sidebar() {
   const location = useLocation();
@@ -50,6 +51,21 @@ export default function Sidebar() {
       </div>
 
       <div className="mt-auto">
+        <div className="px-2">
+          <label className="flex w-full cursor-pointer items-center gap-3 rounded-md px-3 py-2 text-gray-600 hover:bg-gray-100">
+            <input
+              type="checkbox"
+              checked={useUIStore((state) => state.includeInternalProjects)}
+              onChange={(e) =>
+                useUIStore
+                  .getState()
+                  .setIncludeInternalProjects(e.target.checked)
+              }
+              className="h-4 w-4 rounded border-gray-300 text-blue-600 focus:ring-blue-500"
+            />
+            <span className="text-sm font-medium">Internal Projects</span>
+          </label>
+        </div>
         {secondaryNavItems.map((item) => {
           const Icon = item.icon;
           const isActive = location.pathname === item.path;
